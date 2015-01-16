@@ -68,16 +68,25 @@
             </plugin>
         </plugins>
     </build>
-    <repositories>
+    <distributionManagement>
+        <snapshotRepository>
+            <id>nexus</id>
+            <name>qmetric-snapshot</name>
+            <url>https://ci.qmetric.co.uk/nexus/content/repositories/qmetric-snapshots</url>
+        </snapshotRepository>
         <repository>
-            <id>central</id>
-            <name>Maven Repository Switchboard</name>
-            <layout>default</layout>
-            <url>http://repo1.maven.org/maven2</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
+            <id>nexus</id>
+            <name>qmetric-releases</name>
+            <url>https://ci.qmetric.co.uk/nexus/content/repositories/qmetric-releases</url>
         </repository>
-    </repositories>
+    </distributionManagement>
+
+    <scm>
+        <url>git@github.com:qmetric/feed-publisher.git</url>
+        <connection>scm:git:git://github.com/qmetric/feed-publisher.git</connection>
+        <developerConnection>scm:git:git@github.com:qmetric/feed-publisher.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
 
 </project>
