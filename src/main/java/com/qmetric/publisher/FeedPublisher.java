@@ -17,7 +17,7 @@ public class FeedPublisher<T>
 {
     private final static Logger LOGGER = LoggerFactory.getLogger(FeedPublisher.class);
 
-    public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final ContentMaker<T> contentMaker;
 
@@ -47,7 +47,12 @@ public class FeedPublisher<T>
         RequestBody body = RequestBody.create(JSON, content);
         Request request = new Request.Builder().url(feedUrl).post(body).build();
         Response response = client.newCall(request).execute();
-        LOGGER.info(String.format("Published %s %s to %s", t.getClass().getName(), t, feedUrl));
+
+        if (LOGGER.isInfoEnabled())
+        {
+            LOGGER.info(String.format("Published %s %s to %s", t.getClass().getName(), t, feedUrl));
+        }
+
         return response;
     }
 }
