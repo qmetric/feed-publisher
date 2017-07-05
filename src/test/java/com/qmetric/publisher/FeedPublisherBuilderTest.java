@@ -1,10 +1,10 @@
 package com.qmetric.publisher;
 
-import com.squareup.okhttp.Call;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Protocol;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -16,10 +16,11 @@ import static org.mockito.Mockito.when;
 public class FeedPublisherBuilderTest
 {
     @Test
-    public void testName() throws Exception
+    public void buildsTheFeedPublisher() throws Exception
     {
+        final String url = "http://example.com/";
         final Request request = new Request.Builder()
-                .url("http://example.com/")
+                .url(url)
                 .build();
         final Response response = new Response.Builder()
                 .protocol(Protocol.HTTP_1_1)
@@ -31,9 +32,8 @@ public class FeedPublisherBuilderTest
         final Call call = mock(Call.class);
         when(call.execute()).thenReturn(response);
         when(okHttpClient.newCall(any(Request.class))).thenReturn(call);
-        final String feedUrl = "feedPublisherBuilder";
         final ContentMaker<TData> contentMaker = o -> "content";
-        final FeedPublisher<TData> feedPublisher = FeedPublisherBuilder.newBuilder(feedUrl, contentMaker, okHttpClient).createFeedPublisher();
+        final FeedPublisher<TData> feedPublisher = FeedPublisherBuilder.newBuilder(url, contentMaker, okHttpClient).createFeedPublisher();
 
         final Response publish = feedPublisher.publish(new TData());
 
