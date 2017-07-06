@@ -7,7 +7,6 @@ Basic Builder Signature
 ```
 public static <T> FeedPublisherBuilder<T> newBuilder(final String feedUrl, final ContentMaker<T> contentMaker, final OkHttpClient okHttpClient)
 ```
-
 Example of use
 
 ```
