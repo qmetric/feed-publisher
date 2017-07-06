@@ -18,11 +18,16 @@ public class FeedPublisherBuilder<T>
     private final ContentMaker<T> contentMaker;
     private final Retryer<Response> retryer;
 
+    private static RetryerBuilder<Response> RETRYER_BUILDER = RetryerBuilder.<Response>newBuilder() //
+            .retryIfExceptionOfType(IOException.class) //
+            .withWaitStrategy(WaitStrategies.fixedWait(2, SECONDS)) //
+            .withStopStrategy(StopStrategies.stopAfterAttempt(60)); //
+
     private FeedPublisherBuilder(final String feedUrl, final ContentMaker<T> contentMaker, final OkHttpClient okHttpClient)
     {
         this.feedUrl = feedUrl;
         this.contentMaker = contentMaker;
-        this.retryer = FeedPublisherBuilder.RETRYER_BUILDER.build();
+        this.retryer = RETRYER_BUILDER.build();
         this.client = okHttpClient;
     }
 
@@ -30,12 +35,6 @@ public class FeedPublisherBuilder<T>
     {
         return new FeedPublisherBuilder<>(feedUrl, contentMaker, okHttpClient);
     }
-
-    private static RetryerBuilder<Response> RETRYER_BUILDER = RetryerBuilder.<Response>newBuilder() //
-            .retryIfExceptionOfType(IOException.class) //
-            .withWaitStrategy(WaitStrategies.fixedWait(2, SECONDS)) //
-            .withStopStrategy(StopStrategies.stopAfterAttempt(60)); //
-
 
     public FeedPublisher<T> createFeedPublisher()
     {
