@@ -2,22 +2,28 @@ package com.qmetric.publisher;
 
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
+import com.google.common.base.Preconditions;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 public class FeedPublisher<T>
 {
-    private final static Logger LOGGER = LoggerFactory.getLogger(FeedPublisher.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FeedPublisher.class);
 
-    public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final ContentMaker<T> contentMaker;
 
@@ -35,9 +41,16 @@ public class FeedPublisher<T>
         this.retryer = retryer;
     }
 
-    public Response publish(final T t) throws ExecutionException, RetryException
+    public Response publish(final T t) throws RetryException
     {
-        return retryer.call(() -> publishToFeed(t));
+        try
+        {
+            return retryer.call(() -> publishToFeed(t));
+        }
+        catch (ExecutionException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     private Response publishToFeed(final T t) throws IOException
@@ -47,7 +60,71 @@ public class FeedPublisher<T>
         RequestBody body = RequestBody.create(JSON, content);
         Request request = new Request.Builder().url(feedUrl).post(body).build();
         Response response = client.newCall(request).execute();
-        LOGGER.info(String.format("Published %s %s to %s", t.getClass().getName(), t, feedUrl));
+
+        if (LOGGER.isInfoEnabled())
+        {
+            LOGGER.info(String.format("Published %s to %s", body, feedUrl));
+        }
+
         return response;
+    }
+
+    public static class Builder<T>
+    {
+        private ContentMaker<T> contentMaker;
+
+        private OkHttpClient httpClient;
+
+        private String url;
+
+        private Retryer<Response> retryer = RetryerBuilder.<Response>newBuilder() //
+                .retryIfExceptionOfType(IOException.class) //
+                .withWaitStrategy(WaitStrategies.fixedWait(2, SECONDS)) //
+                .withStopStrategy(StopStrategies.stopAfterAttempt(60)).build(); //
+
+        public Builder<T> url(String url)
+        {
+            this.url = url;
+            return this;
+        }
+
+        public Builder<T> httpClient(OkHttpClient httpClient)
+        {
+            this.httpClient = httpClient;
+            return this;
+        }
+
+        public Builder<T> contentMaker(ContentMaker<T> contentMaker)
+        {
+            this.contentMaker = contentMaker;
+            return this;
+        }
+
+        public Builder<T> retyer(Retryer<Response> retryer)
+        {
+            this.retryer = retryer;
+            return this;
+        }
+
+        public Builder<T> notRetrying()
+        {
+            this.retryer = RetryerBuilder.<Response>newBuilder().build();
+            return this;
+        }
+
+        public FeedPublisher<T> build()
+        {
+            Preconditions.checkNotNull(contentMaker);
+            Preconditions.checkNotNull(httpClient);
+            Preconditions.checkNotNull(url);
+            Preconditions.checkNotNull(retryer);
+
+            return new FeedPublisher<>(httpClient, url, contentMaker, retryer);
+        }
+    }
+
+    public static <T> Builder<T> builder()
+    {
+        return new Builder<>();
     }
 }
